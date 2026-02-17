@@ -1,9 +1,15 @@
-const express = require('express');
-const User = require('../models/User');
-const router = express.Router();
+import { Router, Request, Response } from 'express';
+import { User } from '../models/User';
 
-router.get('/login', (req, res) => {
-  const redirect = req.query.redirect || '/';
+const router = Router();
+
+interface CustomSessionData {
+  userId?: string;
+}
+
+
+router.get('/login', (req: Request, res: Response) => {
+  const redirect = req.query.redirect?.toString() || '/';
   res.send(`
     <form method="POST">
       <input name="email" placeholder="Email" required><br>
@@ -14,14 +20,14 @@ router.get('/login', (req, res) => {
   `);
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   const { email, password, redirect } = req.body;
   const user = await User.findOne({ email });
   if (!user || !(await user.comparePassword(password))) {
     return res.status(401).send('Invalid credentials');
   }
-  req.session.userId = user._id;
+  (req.session as unknown as CustomSessionData).userId = user._id.toString();
   res.redirect(redirect || '/');
 });
 
-module.exports = router;
+export default router;

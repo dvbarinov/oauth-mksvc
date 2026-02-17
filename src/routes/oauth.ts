@@ -1,16 +1,18 @@
-const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const User = require('../models/User');
-const OAuthClient = require('../models/OAuthClient');
-const AuthorizationCode = require('../models/AuthorizationCode');
-const AccessToken = require('../models/AccessToken');
-const RefreshToken = require('../models/RefreshToken');
-const { generateCodeChallenge } = require('../utils/crypto');
-const { generateAccessToken, generateRefreshToken } = require('../utils/tokens');
-const router = express.Router();
+import { Router, Request, Response, urlencoded } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import { User } from '../models/User';
+import { OAuthClient } from '../models/OAuthClient';
+import { AuthorizationCode } from '../models/AuthorizationCode';
+import { AccessToken } from '../models/AccessToken';
+import { RefreshToken } from '../models/RefreshToken';
+import { generateCodeChallenge } from '../utils/crypto';
+import { generateAccessToken, generateRefreshToken } from '../utils/tokens';
+import jwt from 'jsonwebtoken';
+
+const router = Router();
 
 // Authorization Endpoint
-router.get('/authorize', async (req, res) => {
+router.get('/authorize', async (req: Request, res: Response) => {
   const {
     client_id,
     redirect_uri,
@@ -25,16 +27,16 @@ router.get('/authorize', async (req, res) => {
     return res.status(400).send('Unsupported response type');
   }
 
-  const client = await OAuthClient.findOne({ clientId: client_id });
-  if (!client || !client.redirectUris.includes(redirect_uri)) {
+  const client = await OAuthClient.findOne({ clientId: client_id as string });
+  if (!client || !client.redirectUris.includes(redirect_uri as string)) {
     return res.status(400).send('Invalid client or redirect URI');
   }
 
-  if (!req.session.userId) {
-    return res.redirect(`/login?redirect=${encodeURIComponent(req.originalUrl)}`);
+  if (!req.session?.userId) {
+    const originalUrl = encodeURIComponent(req.originalUrl);
+    return res.redirect(`/login?redirect=${originalUrl}`);
   }
 
-  // Показываем экран согласия
   res.send(`
     <h2>${client.name} запрашивает доступ к вашему аккаунту</h2>
     <p>Scope: ${scope}</p>
@@ -52,7 +54,7 @@ router.get('/authorize', async (req, res) => {
 });
 
 // Обработка согласия
-router.post('/authorize', async (req, res) => {
+router.post('/authorize', async (req: Request, res: Response) => {
   const {
     client_id,
     redirect_uri,
@@ -71,12 +73,12 @@ router.post('/authorize', async (req, res) => {
   }
 
   const code = uuidv4();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 мин
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   const authCode = new AuthorizationCode({
     code,
     clientId: client_id,
-    userId: req.session.userId,
+    userId: req.session!.userId,
     redirectUri: redirect_uri,
     scope,
     expiresAt,
@@ -93,8 +95,8 @@ router.post('/authorize', async (req, res) => {
 });
 
 // Token Endpoint
-router.post('/token', express.urlencoded({ extended: false }), async (req, res) => {
-  const { grant_type, code, redirect_uri, client_id, client_secret, refresh_token, code_verifier } = req.body;
+router.post('/token', urlencoded({ extended: false }), async (req: Request, res: Response) => {
+  const { grant_type, code, redirect_uri, client_id, refresh_token, code_verifier } = req.body;
 
   if (grant_type === 'authorization_code') {
     if (!code || !redirect_uri || !client_id) {
@@ -102,20 +104,26 @@ router.post('/token', express.urlencoded({ extended: false }), async (req, res) 
     }
 
     const authCode = await AuthorizationCode.findOne({ code });
-    if (!authCode || authCode.expiresAt < new Date() || authCode.clientId !== client_id || authCode.redirectUri !== redirect_uri) {
+    if (
+      !authCode ||
+      authCode.expiresAt < new Date() ||
+      authCode.clientId !== client_id ||
+      authCode.redirectUri !== redirect_uri
+    ) {
       return res.status(400).json({ error: 'invalid_grant' });
     }
 
-    // PKCE проверка
+    // PKCE
     if (authCode.challenge) {
-      if (!code_verifier) return res.status(400).json({ error: 'invalid_request', error_description: 'Missing code_verifier' });
+      if (!code_verifier) {
+        return res.status(400).json({ error: 'invalid_request', error_description: 'Missing code_verifier' });
+      }
       const expectedChallenge = generateCodeChallenge(code_verifier);
       if (expectedChallenge !== authCode.challenge) {
         return res.status(400).json({ error: 'invalid_grant', error_description: 'PKCE verification failed' });
       }
     }
 
-    // Удаляем использованный код
     await AuthorizationCode.deleteOne({ _id: authCode._id });
 
     const accessTokenStr = generateAccessToken({
@@ -125,8 +133,8 @@ router.post('/token', express.urlencoded({ extended: false }), async (req, res) 
     });
 
     const refreshTokenStr = generateRefreshToken();
-
     const now = new Date();
+
     await new AccessToken({
       token: accessTokenStr,
       clientId: authCode.clientId,
@@ -140,7 +148,7 @@ router.post('/token', express.urlencoded({ extended: false }), async (req, res) 
       clientId: authCode.clientId,
       userId: authCode.userId,
       scope: authCode.scope,
-      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 дней
+      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
     }).save();
 
     res.json({
@@ -161,7 +169,6 @@ router.post('/token', express.urlencoded({ extended: false }), async (req, res) 
       return res.status(400).json({ error: 'invalid_grant' });
     }
 
-    // Инвалидируем старый refresh token
     await RefreshToken.deleteOne({ _id: refreshTokenDoc._id });
 
     const newAccessToken = generateAccessToken({
@@ -203,16 +210,15 @@ router.post('/token', express.urlencoded({ extended: false }), async (req, res) 
 });
 
 // UserInfo Endpoint
-router.get('/userinfo', async (req, res) => {
+router.get('/userinfo', async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'missing_token' });
   }
 
   const token = authHeader.substring(7);
-  const jwt = require('jsonwebtoken');
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string };
     const user = await User.findById(payload.sub).select('name email');
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ sub: payload.sub, name: user.name, email: user.email });
@@ -221,4 +227,4 @@ router.get('/userinfo', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

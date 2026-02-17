@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { OAuthClient } from '../models/OAuthClient';
 import { v4 as uuidv4 } from 'uuid';
-import { setUserId, getUserId } from '../utils/session';
+import { registerClientSchema } from '../schemas/client';
+import { getUserId } from '../utils/session';
 
 const router = Router();
 
-// Защита: только залогиненные
 router.use((req: Request, res: Response, next: Function) => {
   if (!getUserId(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -14,14 +14,15 @@ router.use((req: Request, res: Response, next: Function) => {
 });
 
 router.post('/', async (req: Request, res: Response) => {
-  const { name, redirectUris, scopes = ['profile'] } = req.body;
-
-  if (!name || !Array.isArray(redirectUris) || redirectUris.length === 0) {
-    return res.status(400).json({ error: 'Invalid input' });
+  const parsed = registerClientSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid client data', details: parsed.error.format() });
   }
 
+  const { name, redirectUris, scopes } = parsed.data;
+
   const clientId = uuidv4();
-  const clientSecret = uuidv4(); // в продакшене — хэшируй!
+  const clientSecret = uuidv4();
 
   const client = new OAuthClient({
     clientId,
@@ -33,7 +34,7 @@ router.post('/', async (req: Request, res: Response) => {
   });
 
   await client.save();
-  res.json({ clientId, clientSecret });
+  res.json({ clientId, client_secret: clientSecret }); // соответствует RFC (snake_case)
 });
 
 export default router;

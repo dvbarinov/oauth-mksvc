@@ -8,28 +8,30 @@ import { RefreshToken } from '../models/RefreshToken';
 import { generateCodeChallenge } from '../utils/crypto';
 import { generateAccessToken, generateRefreshToken } from '../utils/tokens';
 import jwt from 'jsonwebtoken';
-import { setUserId, getUserId } from '../utils/session';
+import { getUserId } from '../utils/session';
+import { authorizeConsentBodySchema, authorizeQuerySchema, tokenRequestBodySchema } from '../schemas/oauth';
 
 const router = Router();
 
 // Authorization Endpoint
 router.get('/authorize', async (req: Request, res: Response) => {
+  const parsed = authorizeQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'invalid_request', details: parsed.error.format() });
+  }
+
   const {
     client_id,
     redirect_uri,
     response_type,
-    scope = 'profile',
+    scope,
     state,
     code_challenge,
     code_challenge_method
-  } = req.query;
+  } = parsed.data;
 
-  if (response_type !== 'code') {
-    return res.status(400).send('Unsupported response type');
-  }
-
-  const client = await OAuthClient.findOne({ clientId: client_id as string });
-  if (!client || !client.redirectUris.includes(redirect_uri as string)) {
+  const client = await OAuthClient.findOne({ clientId: client_id });
+  if (!client || !client.redirectUris.includes(redirect_uri)) {
     return res.status(400).send('Invalid client or redirect URI');
   }
 
@@ -54,8 +56,13 @@ router.get('/authorize', async (req: Request, res: Response) => {
   `);
 });
 
-// Обработка согласия
+// Consent form handler / Обработка согласия
 router.post('/authorize', async (req: Request, res: Response) => {
+  const parsed = authorizeConsentBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'invalid_request', details: parsed.error.format() });
+  }
+
   const {
     client_id,
     redirect_uri,
@@ -64,8 +71,9 @@ router.post('/authorize', async (req: Request, res: Response) => {
     approve,
     code_challenge,
     code_challenge_method
-  } = req.body;
+  } = parsed.data;
 
+  // ... логика согласия ...
   if (!approve) {
     const url = new URL(redirect_uri);
     url.searchParams.append('error', 'access_denied');
@@ -97,7 +105,23 @@ router.post('/authorize', async (req: Request, res: Response) => {
 
 // Token Endpoint
 router.post('/token', urlencoded({ extended: false }), async (req: Request, res: Response) => {
-  const { grant_type, code, redirect_uri, client_id, refresh_token, code_verifier } = req.body;
+  const parsed = tokenRequestBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Validation failed',
+      details: parsed.error.format() //ТОЛЬКО ДЛЯ DEV MODE!!!
+    });
+  }
+
+  const {
+    grant_type,
+    code,
+    redirect_uri,
+    client_id,
+    refresh_token,
+    code_verifier
+  } = parsed.data;
 
   if (grant_type === 'authorization_code') {
     if (!code || !redirect_uri || !client_id) {

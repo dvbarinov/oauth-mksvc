@@ -8,6 +8,7 @@ import { RefreshToken } from '../models/RefreshToken';
 import { generateCodeChallenge } from '../utils/crypto';
 import { generateAccessToken, generateRefreshToken } from '../utils/tokens';
 import jwt from 'jsonwebtoken';
+import { setUserId, getUserId } from '../utils/session';
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get('/authorize', async (req: Request, res: Response) => {
     return res.status(400).send('Invalid client or redirect URI');
   }
 
-  if (!req.session?.userId) {
+  if (!getUserId(req)) {
     const originalUrl = encodeURIComponent(req.originalUrl);
     return res.redirect(`/login?redirect=${originalUrl}`);
   }
@@ -78,7 +79,7 @@ router.post('/authorize', async (req: Request, res: Response) => {
   const authCode = new AuthorizationCode({
     code,
     clientId: client_id,
-    userId: req.session!.userId,
+    userId: getUserId(req),
     redirectUri: redirect_uri,
     scope,
     expiresAt,

@@ -1,12 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { User } from '../models/User';
+import { setUserId, getUserId } from '../utils/session';
 
 const router = Router();
-
-interface CustomSessionData {
-  userId?: string;
-}
-
 
 router.get('/login', (req: Request, res: Response) => {
   const redirect = req.query.redirect?.toString() || '/';
@@ -26,7 +22,7 @@ router.post('/login', async (req: Request, res: Response) => {
   if (!user || !(await user.comparePassword(password))) {
     return res.status(401).send('Invalid credentials');
   }
-  (req.session as unknown as CustomSessionData).userId = user._id.toString();
+  setUserId(req, user._id.toString());
   res.redirect(redirect || '/');
 });
 

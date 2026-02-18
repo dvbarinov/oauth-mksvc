@@ -23,7 +23,7 @@ router.get('/.well-known/openid-configuration', (req: Request, res: Response) =>
     jwks_uri: `${baseUrl}/.well-known/jwks.json`, // Требуется для проверки подписи JWT
     response_types_supported: ['code'], // Поддерживаем только Authorization Code
     subject_types_supported: ['public'],
-    id_token_signing_alg_values_supported: ['RS256', 'HS256'], // Укажите те, что реально используете
+    id_token_signing_alg_values_supported: ['RS256'], // Укажите те, что реально используете, убран 'HS256'
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
     scopes_supported: ['openid', 'profile', 'email'], // Стандартные OIDC scope + ваши

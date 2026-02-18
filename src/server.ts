@@ -10,14 +10,20 @@ import authRoutes from './routes/auth';
 import oauthRoutes from './routes/oauth';
 import clientRoutes from './routes/clients';
 import discoveryRoutes from './routes/discovery'; 
+import jwksRoutes from './routes/jwks';
+import { initKeys } from './utils/keys';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+
+// Инициализация криптографических ключей
+initKeys(); 
 
 mongoose.connect(process.env.MONGODB_URI!).then(() => {
   console.log('Connected to MongoDB');
 });
 
+// Middleware...
 app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
@@ -39,6 +45,7 @@ app.use('/auth', authRoutes);
 app.use('/oauth', oauthRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/', discoveryRoutes);
+app.use('/', jwksRoutes);
 
 app.get('/health', (_req: Request, res: Response) => res.json({ ok: true }));
 

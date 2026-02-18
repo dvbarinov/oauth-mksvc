@@ -12,6 +12,7 @@ import clientRoutes from './routes/clients';
 import discoveryRoutes from './routes/discovery'; 
 import jwksRoutes from './routes/jwks';
 import revokeRoutes from './routes/revoke';
+import introspectRoutes from './routes/introspect';
 import { initKeys } from './utils/keys';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/', discoveryRoutes);
 app.use('/', jwksRoutes);
 app.use('/', revokeRoutes);
+app.use('/', introspectRoutes);
 
 app.get('/health', (_req: Request, res: Response) => res.json({ ok: true }));
 

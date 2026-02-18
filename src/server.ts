@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth';
 import oauthRoutes from './routes/oauth';
 import clientRoutes from './routes/clients';
+import discoveryRoutes from './routes/discovery'; 
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
@@ -37,9 +38,11 @@ app.use(cors({
 app.use('/auth', authRoutes);
 app.use('/oauth', oauthRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/', discoveryRoutes);
 
 app.get('/health', (_req: Request, res: Response) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
   console.log(`OAuth server running on http://localhost:${PORT}`);
+  console.log(`Discovery URL: http://localhost:${PORT}/.well-known/openid-configuration`);
 });

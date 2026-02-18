@@ -8,7 +8,8 @@ export const authorizeQuerySchema = z.object({
   scope: z.string().optional().default('profile'),
   state: z.string().optional(),
   code_challenge: z.string().optional(),
-  code_challenge_method: z.enum(['S256', 'plain']).optional()
+  code_challenge_method: z.enum(['S256', 'plain']).optional(),
+  nonce: z.string().optional() // <--- Добавлено для OIDC
 });
 
 // Для POST /oauth/authorize (согласие)
@@ -19,7 +20,8 @@ export const authorizeConsentBodySchema = z.object({
   state: z.string().optional(),
   approve: z.enum(['1']),
   code_challenge: z.string().optional(),
-  code_challenge_method: z.enum(['S256', 'plain']).optional()
+  code_challenge_method: z.enum(['S256', 'plain']).optional(),
+  nonce: z.string().optional() // <--- Добавлено для OIDC
 });
 
 // Для POST /oauth/token
@@ -33,6 +35,7 @@ export const tokenRequestBodySchema = z.object({
   refresh_token: z.string().optional(),
   // PKCE
   code_verifier: z.string().optional()
+  // nonce не передается в /token, он уже зашит в коде авторизации
 }).refine(
   (data) => {
     if (data.grant_type === 'authorization_code') {

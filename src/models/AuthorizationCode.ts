@@ -5,10 +5,11 @@ export interface IAuthorizationCode extends Document {
   clientId: string;
   userId: Types.ObjectId;
   redirectUri: string;
-  scope?: string;
+  scope: string; // Может содержать "openid profile email"
   expiresAt: Date;
   challenge?: string;
   challengeMethod?: string;
+  nonce?: string; // <--- Добавлено для OIDC
 }
 
 const codeSchema = new Schema<IAuthorizationCode>({
@@ -16,10 +17,11 @@ const codeSchema = new Schema<IAuthorizationCode>({
   clientId: { type: String, required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   redirectUri: { type: String, required: true },
-  scope: String,
+  scope: { type: String, required: true }, // Теперь обязательно
   expiresAt: { type: Date, required: true },
   challenge: String,
-  challengeMethod: String
+  challengeMethod: String,
+  nonce: String // <--- Добавлено
 });
 
 codeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

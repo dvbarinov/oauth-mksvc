@@ -6,7 +6,7 @@ import { AuthorizationCode } from '../models/AuthorizationCode';
 import { AccessToken } from '../models/AccessToken';
 import { RefreshToken } from '../models/RefreshToken';
 import { generateCodeChallenge } from '../utils/crypto';
-import { generateAccessToken, generateRefreshToken } from '../utils/tokens';
+import { generateAccessToken, generateIdToken, generateRefreshToken } from '../utils/tokens';
 import jwt from 'jsonwebtoken';
 import { getUserId } from '../utils/session';
 import { authorizeConsentBodySchema, authorizeQuerySchema, tokenRequestBodySchema } from '../schemas/oauth';
@@ -48,6 +48,7 @@ router.get('/authorize', async (req: Request, res: Response) => {
       <input type="hidden" name="redirect_uri" value="${redirect_uri}">
       <input type="hidden" name="scope" value="${scope}">
       <input type="hidden" name="state" value="${state || ''}">
+      <input type="hidden" name="nonce" value="${req.query.nonce || ''}"> 
       <input type="hidden" name="code_challenge" value="${code_challenge || ''}">
       <input type="hidden" name="code_challenge_method" value="${code_challenge_method || ''}">
       <button name="approve" value="1">Разрешить</button>
@@ -70,7 +71,8 @@ router.post('/authorize', async (req: Request, res: Response) => {
     state,
     approve,
     code_challenge,
-    code_challenge_method
+    code_challenge_method,
+    nonce
   } = parsed.data;
 
   // ... логика согласия ...
@@ -92,7 +94,9 @@ router.post('/authorize', async (req: Request, res: Response) => {
     scope,
     expiresAt,
     challenge: code_challenge,
-    challengeMethod: code_challenge_method
+    challengeMethod: code_challenge_method,
+    nonce: nonce || undefined // Сохраняем nonce (упрощенно берем из body)
+    // Примечание: nonce приходит в query при GET и передается в hidden input при POST
   });
 
   await authCode.save();
@@ -151,6 +155,11 @@ router.post('/token', urlencoded({ extended: false }), async (req: Request, res:
 
     await AuthorizationCode.deleteOne({ _id: authCode._id });
 
+    const user = await User.findById(authCode.userId);
+    if (!user) {
+      return res.status(500).json({ error: 'server_error', error_description: 'User not found' });
+    }
+
     const accessTokenStr = generateAccessToken({
       sub: authCode.userId.toString(),
       client_id: authCode.clientId,
@@ -176,13 +185,26 @@ router.post('/token', urlencoded({ extended: false }), async (req: Request, res:
       expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
     }).save();
 
-    res.json({
+    let idToken: string | undefined;
+
+    const scopes = authCode.scope.split(' ');
+    if (scopes.includes('openid')) {
+      idToken = generateIdToken(user, authCode.clientId, authCode.nonce);
+    }
+
+    const responseBody: any = {
       access_token: accessTokenStr,
       token_type: 'Bearer',
       expires_in: 900,
       refresh_token: refreshTokenStr,
       scope: authCode.scope
-    });
+    };
+
+    if (idToken) {
+      responseBody.id_token = idToken;
+    }
+
+    res.json(responseBody);
 
   } else if (grant_type === 'refresh_token') {
     if (!refresh_token || !client_id) {

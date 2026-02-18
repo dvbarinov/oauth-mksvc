@@ -51,3 +51,11 @@ export const tokenRequestBodySchema = z.object({
     path: ['grant_type']
   }
 );
+
+// POST /oauth/revoke
+export const revokeTokenSchema = z.object({
+  token: z.string().min(1),
+  token_type_hint: z.enum(['access_token', 'refresh_token']).optional(),
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1)
+});

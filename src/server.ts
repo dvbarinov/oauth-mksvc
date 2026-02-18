@@ -11,6 +11,7 @@ import oauthRoutes from './routes/oauth';
 import clientRoutes from './routes/clients';
 import discoveryRoutes from './routes/discovery'; 
 import jwksRoutes from './routes/jwks';
+import revokeRoutes from './routes/revoke';
 import { initKeys } from './utils/keys';
 
 const app = express();
@@ -46,6 +47,7 @@ app.use('/oauth', oauthRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/', discoveryRoutes);
 app.use('/', jwksRoutes);
+app.use('/', revokeRoutes);
 
 app.get('/health', (_req: Request, res: Response) => res.json({ ok: true }));
 

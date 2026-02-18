@@ -27,8 +27,10 @@ router.get('/.well-known/openid-configuration', (req: Request, res: Response) =>
     grant_types_supported: ['authorization_code', 'refresh_token'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
     scopes_supported: ['openid', 'profile', 'email'], // Стандартные OIDC scope + ваши
-    claims_supported: ['sub', 'name', 'email', 'email_verified']
-  };
+    claims_supported: ['sub', 'name', 'email', 'email_verified'],
+    revocation_endpoint: `${baseUrl}/oauth/revoke`, // <--- Добавлено
+    revocation_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
+};
 
   // Валидация перед отправкой (защита от ошибок конфигурации)
   const parsed = openidConfigurationSchema.safeParse(config);

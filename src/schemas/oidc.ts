@@ -13,7 +13,9 @@ export const openidConfigurationSchema = z.object({
   grant_types_supported: z.array(z.string()),
   token_endpoint_auth_methods_supported: z.array(z.string()),
   scopes_supported: z.array(z.string()).optional(),
-  claims_supported: z.array(z.string()).optional()
+  claims_supported: z.array(z.string()).optional(),
+  revocation_endpoint: z.string().url(),
+  revocation_endpoint_auth_methods_supported: z.array(z.string()).optional()
 });
 
 export type OpenIDConfiguration = z.infer<typeof openidConfigurationSchema>;

@@ -8,7 +8,7 @@ const router = Router();
 router.get('/login', (req: Request, res: Response) => {
   const redirect = req.query.redirect?.toString() || '/';
   res.send(`
-    <form method="POST">
+    <form method="POST" action="/auth/login">
       <input name="email" placeholder="Email" required><br>
       <input name="password" type="password" placeholder="Password" required><br>
       <input type="hidden" name="redirect" value="${redirect}">

@@ -37,7 +37,7 @@ router.get('/authorize', async (req: Request, res: Response) => {
 
   if (!getUserId(req)) {
     const originalUrl = encodeURIComponent(req.originalUrl);
-    return res.redirect(`/login?redirect=${originalUrl}`);
+    return res.redirect(`/auth/login?redirect=${originalUrl}`);
   }
 
   res.send(`

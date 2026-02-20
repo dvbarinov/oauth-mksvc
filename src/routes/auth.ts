@@ -124,7 +124,7 @@ router.post('/register', async (req: Request, res: Response) => {
     await newUser.save();
 
     // Автоматический вход после регистрации (опционально, но удобно)
-    req.session!.userId = newUser._id.toString();
+    setUserId(req, newUser._id.toString());
 
     res.redirect(redirect || '/');
   } catch (err) {

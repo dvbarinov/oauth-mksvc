@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
+import { getUserId } from '../utils/session';
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
-  if (!req.session?.userId) {
+  if (!getUserId(req)) {
     const redirect = encodeURIComponent(req.originalUrl);
     return res.redirect(`/login?redirect=${redirect}`);
   }

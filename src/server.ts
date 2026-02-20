@@ -15,6 +15,9 @@ import revokeRoutes from './routes/revoke';
 import introspectRoutes from './routes/introspect';
 //ADMIN
 import adminRoutes from './routes/admin';
+//DEVELOPER
+import developerRoutes from './routes/developer';
+
 import { initKeys } from './utils/keys';
 
 const app = express();
@@ -47,7 +50,8 @@ app.use(cors({
 
 app.use('/auth', authRoutes);
 app.use('/oauth', oauthRoutes);
-app.use('/admin', adminRoutes); 
+app.use('/admin', adminRoutes);
+app.use('/developer', developerRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/', discoveryRoutes);
 app.use('/', jwksRoutes);

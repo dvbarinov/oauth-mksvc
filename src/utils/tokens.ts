@@ -61,7 +61,7 @@ export const generateIdToken = (
   // Явно указываем тип опций, чтобы TypeScript понял структуру
   const options: SignOptions = {
     algorithm: 'RS256',
-    expiresIn: '1h',
+    //expiresIn: '1h',
     header: {
       kid: 'oauth-server-key-1', // Должен совпадать с kid в JWKS
       alg: 'RS256' // <--- ОБЯЗАТЕЛЬНО: добавляем alg в заголовок

@@ -10,5 +10,6 @@ export const getUserId = (req: Request): string | undefined => {
 };
 
 export const setUserId = (req: Request, id: string): void => {
+  //req.session!.userId = id;
   (req.session as unknown as CustomSessionData).userId = id;
 };

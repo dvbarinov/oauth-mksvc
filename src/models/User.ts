@@ -1,6 +1,7 @@
-import { Document, model, Schema } from 'mongoose';
+import { Document, Model, model, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
 
+// 1. Интерфейс документа (экземпляр пользователя)
 export interface IUser extends Document {
   email: string;
   passwordHash: string;
@@ -9,7 +10,13 @@ export interface IUser extends Document {
   comparePassword(password: string): Promise<boolean>;
 }
 
-const userSchema = new Schema<IUser>({
+// 2. Интерфейс модели (статические методы)
+interface IUserModel extends Model<IUser> {
+  hashPassword(password: string): Promise<string>;
+}
+
+// 3. Создаем схему с явными типами <IUser, IUserModel>
+const userSchema = new Schema<IUser, IUserModel>({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
   name: String,
@@ -24,4 +31,5 @@ userSchema.statics.hashPassword = async function (password: string): Promise<str
   return await bcrypt.hash(password, 12);
 };
 
-export const User = model<IUser>('User', userSchema);
+// 4. Явно приводим тип модели к IUserModel
+export const User = model<IUser, IUserModel>('User', userSchema);
